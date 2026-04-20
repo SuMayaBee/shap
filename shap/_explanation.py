@@ -491,7 +491,7 @@ class Explanation(metaclass=MetaExplanation):
         return self._apply_binary_operator(other, operator.sub, "__sub__")
 
     def __rsub__(self, other: Explanation | npt.NDArray[Any] | float | int) -> Explanation:  # type: ignore[misc]
-        # other - self; __sub__ and __rsub__ were identical before — subtraction is not commutative so operands must be swapped
+        # other - self; __sub__ and __rsub__ were identical before and subtraction is not commutative so operands must be swapped
         return self._apply_binary_operator(other, lambda a, b: b - a, "__rsub__")
 
     def __mul__(self, other: Explanation | npt.NDArray[Any] | float | int) -> Explanation:
