@@ -112,6 +112,21 @@ def _xgboost_cat_unsupported(model: TreeEnsemble) -> None:
         )
 
 
+def _build_trees_from_dump_model(booster: Any, data: Any, data_missing: Any) -> list | None:
+    """Build a list of ``SingleTree`` from a booster exposing ``dump_model()``.
+
+    Used by lightgbm and gpboost branches, which share the same dict-based
+    tree structure. Returns ``None`` if ``SingleTree`` cannot parse the dump,
+    which currently happens when categorical splits are present (the cext
+    cannot handle them yet).
+    """
+    tree_info = booster.dump_model()["tree_info"]
+    try:
+        return [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
+    except Exception:
+        return None
+
+
 class TreeExplainer(Explainer):
     """Uses Tree SHAP algorithms to explain the output of ensemble tree models.
 
@@ -1361,12 +1376,7 @@ class TreeEnsemble:
             assert_import("lightgbm")
             self.model_type = "lightgbm"
             self.original_model = model
-            tree_info = self.original_model.dump_model()["tree_info"]
-            try:
-                self.trees = [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
-            except Exception:
-                self.trees = None  # we get here because the cext can't handle categorical splits yet
-
+            self.trees = _build_trees_from_dump_model(self.original_model, data, data_missing)
             self.objective = objective_name_map.get(model.params.get("objective", "regression"), None)
             self.tree_output = tree_output_name_map.get(model.params.get("objective", "regression"), None)
 
@@ -1374,12 +1384,7 @@ class TreeEnsemble:
             assert_import("gpboost")
             self.model_type = "gpboost"
             self.original_model = model
-            tree_info = self.original_model.dump_model()["tree_info"]
-            try:
-                self.trees = [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
-            except Exception:
-                self.trees = None  # we get here because the cext can't handle categorical splits yet
-
+            self.trees = _build_trees_from_dump_model(self.original_model, data, data_missing)
             self.objective = objective_name_map.get(model.params.get("objective", "regression"), None)
             self.tree_output = tree_output_name_map.get(model.params.get("objective", "regression"), None)
 
@@ -1387,11 +1392,7 @@ class TreeEnsemble:
             assert_import("lightgbm")
             self.model_type = "lightgbm"
             self.original_model = model.booster_
-            tree_info = self.original_model.dump_model()["tree_info"]
-            try:
-                self.trees = [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
-            except Exception:
-                self.trees = None  # we get here because the cext can't handle categorical splits yet
+            self.trees = _build_trees_from_dump_model(self.original_model, data, data_missing)
             self.objective = objective_name_map.get(model.objective, None)
             self.tree_output = tree_output_name_map.get(model.objective, None)
             if model.objective is None:
@@ -1401,11 +1402,7 @@ class TreeEnsemble:
             assert_import("lightgbm")
             self.model_type = "lightgbm"
             self.original_model = model.booster_
-            tree_info = self.original_model.dump_model()["tree_info"]
-            try:
-                self.trees = [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
-            except Exception:
-                self.trees = None  # we get here because the cext can't handle categorical splits yet
+            self.trees = _build_trees_from_dump_model(self.original_model, data, data_missing)
             # Note: for ranker, leaving tree_output and objective as None as they
             # are not implemented in native code yet
         elif safe_isinstance(model, "lightgbm.sklearn.LGBMClassifier"):
@@ -1414,11 +1411,7 @@ class TreeEnsemble:
             if model.n_classes_ > 2:
                 self.num_stacked_models = model.n_classes_
             self.original_model = model.booster_
-            tree_info = self.original_model.dump_model()["tree_info"]
-            try:
-                self.trees = [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
-            except Exception:
-                self.trees = None  # we get here because the cext can't handle categorical splits yet
+            self.trees = _build_trees_from_dump_model(self.original_model, data, data_missing)
             self.objective = objective_name_map.get(model.objective, None)
             self.tree_output = tree_output_name_map.get(model.objective, None)
             if model.objective is None:
