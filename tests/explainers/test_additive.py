@@ -1,11 +1,4 @@
-"""Behavior tests for ``shap.AdditiveExplainer`` going through the public API.
-
-These tests cover the explainer contract for purely additive models, the
-masker integration, the shape consistency required by downstream plot
-functions, and the explicit error path for unsupported masker types. They
-follow the guidance in #4358 to test through ``shap.<SpecificExplainer>``
-rather than internal helpers.
-"""
+"""Tests for shap.AdditiveExplainer."""
 
 import numpy as np
 import pytest
