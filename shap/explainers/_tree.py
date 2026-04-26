@@ -113,13 +113,7 @@ def _xgboost_cat_unsupported(model: TreeEnsemble) -> None:
 
 
 def _build_trees_from_dump_model(booster: Any, data: Any, data_missing: Any) -> list | None:
-    """Build a list of ``SingleTree`` from a booster exposing ``dump_model()``.
-
-    Used by lightgbm and gpboost branches, which share the same dict-based
-    tree structure. Returns ``None`` if ``SingleTree`` cannot parse the dump,
-    which currently happens when categorical splits are present (the cext
-    cannot handle them yet).
-    """
+    """Parse a booster's dump_model() output into a list of SingleTree, or None on failure."""
     tree_info = booster.dump_model()["tree_info"]
     try:
         return [SingleTree(e, data=data, data_missing=data_missing) for e in tree_info]
